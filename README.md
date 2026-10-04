@@ -1,0 +1,2 @@
+# pi-gba-link
+ChisLinkを使って通信ケーブル経由で吸い出したGBAのROMをラズパイに保存するツール
