@@ -1,0 +1,2 @@
+# ChisLink の tools/littlefs/requirements.txt と同じ版
+littlefs-python==0.13.3

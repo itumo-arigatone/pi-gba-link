@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+resources/
+dumps/
+saves/
