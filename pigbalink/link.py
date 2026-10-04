@@ -54,10 +54,10 @@ class PigpioLink:
         return int.from_bytes(bytes(data), "big")
 
     def slave_ready(self) -> bool:
-        # ChisLink の GBA 側 (gba/runtime/src/sio.c の cl_gba_sio_send32) は
-        # SO を Low にしてから Start を立て、転送が終わると SO は High に戻る。
-        # SO が Low の間だけクロックを出せば、GBA が受け取れないワードを送らずに済む。
-        # pigpio の read は GPLEV を読むだけなので SPI の ALT 機能を壊さない。
+        # 転送待ちの SO は、これから送るワードの最上位ビットそのもの（GBATEK の
+        # Normal 32bit は高ビットが先）。プロトコルのワードは 0x2xxxxxxx なので
+        # このビットが 0 で、SO は Low のままになる。pigpio の read はピンの
+        # レベル（GPLEV）を読むだけで、SPI の ALT 機能は壊さない。
         return self._pi.read(GBA_SO_GPIO) == 0
 
     def wait_slave_ready(self, idle_sleep: float = 0.0005) -> None:

@@ -141,6 +141,43 @@ class HostTest(unittest.TestCase):
 
         self.assertEqual(self.run_gba(program()), proto.STATUS_OK)
 
+    def test_high_bit_payload_is_not_gated_on_so(self):
+        """SO は送信ワードの最上位ビット。ROM 先頭の分岐命令はビット 31 が 1。
+
+        ここで準備待ちをすると、GBA は送れないまま 10 秒で諦める。
+        待てるのはプロトコルのワード（0x2xxxxxxx）だけ。
+        """
+        rom = bytearray(fake_gba_rom(300))
+        rom[0:4] = (0xEA00002E).to_bytes(4, "little")  # 実カセットと同じ分岐命令
+        seen_ready = []
+        seen_ungated = []
+
+        def program():
+            yield from self.client.hello()
+            h = yield from self.client.open("/sd/.chislink/dumps/a.gba",
+                                            proto.OPEN_WRITE | proto.OPEN_CREATE | proto.OPEN_TRUNCATE)
+            yield from self.client.write(h, rom)
+            yield from self.client.close(h)
+
+        gen = program()
+        gba_out = next(gen)
+        while True:
+            if self.engine.needs_slave_ready():
+                self.assertEqual(gba_out >> 31, 0, hex(gba_out))
+                seen_ready.append(gba_out)
+            else:
+                seen_ungated.append(gba_out)
+            pi_out = self.engine.next_out()
+            self.engine.receive(gba_out)
+            try:
+                gba_out = gen.send(pi_out)
+            except StopIteration:
+                break
+
+        self.assertIn(0x21000102, seen_ready)  # HELLO
+        self.assertTrue(any(w >> 31 for w in seen_ungated))
+        self.assertEqual((self.dumps / "a.gba").read_bytes(), rom)
+
     def test_idle_nops_are_ignored(self):
         def program():
             for _ in range(5):

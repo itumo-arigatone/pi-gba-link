@@ -124,6 +124,10 @@ HELLO で返す機能ビットは 0 にしている。こうすると GBA 側 SD
 RAM_MAP、STREAM、NET、BLE を自分で送らない。それ以外のコマンドが来たら
 `未対応のコマンド ...` とペイロードをログに出し、`UNSUPPORTED` を返す。
 
+SO（GPIO9）が Low なのを待つのは、コマンドの先頭と応答の直前だけ。転送待ちの
+SO は「準備完了」ではなく、GBA が次に送るワードの最上位ビットそのものなので、
+ROM 本体のあいだは待たない。
+
 パスの対応:
 
 | GBA が頼むパス | Pi |
@@ -167,7 +171,7 @@ AKKERA_MB_GBA=/path/to/gba_01_multiboot/src/multiboot_mb.gba python3 -m unittest
 ```text
 pigbalink/
   proto.py      ChisLink proto.h の定数とヘッダ
-  link.py       pigpio の SPI0 と SO（GPIO9）の準備待ち
+  link.py       pigpio の SPI0。コマンドの切れ目だけ SO（GPIO9）を見る
   multiboot.py  マルチブート送信（akkera102 / bartjakobs の移植）
   host.py       ワード単位の状態機械とコマンド応答
   files.py      パスの対応とハンドル

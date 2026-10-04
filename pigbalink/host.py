@@ -69,6 +69,23 @@ class HostEngine:
 
     # --- ワード単位の入出力 -------------------------------------------------
 
+    def needs_slave_ready(self) -> bool:
+        """次のクロックの前に、SO が Low になるのを待つべきか。
+
+        cl_gba_sio_send32 は SO を一度 Low にしてから Start を立てる。Low の
+        区間は数命令で、pigpio からでは見えない。Start のあと SO に出るのは
+        送信ワードの最上位ビットで、GBA が待っているあいだその値が残る。
+
+        コマンドの先頭と、こちらが応答を返す直前に GBA が送るのは NOP か
+        コマンド（どちらも 0x2xxxxxxx、最上位ビットは 0）なので、SO が Low
+        なら受け取る準備ができている。ペイロードの途中は ROM やセーブの
+        バイトそのもので、最上位ビットが 1 のことも多い。ここで Low を待つと、
+        GBA は準備できているのに SO は High のままなので、最初の分岐命令
+        （0xEA00002E など）で止まる。ペイロード中は待たず、pigpio の往復が
+        GBA の割り込み再装填より遅いことに頼る。
+        """
+        return self._state == _IDLE
+
     def next_out(self) -> int:
         if self._tx:
             self._sending = True
@@ -318,7 +335,8 @@ def serve(link, engine: HostEngine) -> None:
     try:
         while True:
             out = engine.next_out()
-            link.wait_slave_ready()
+            if engine.needs_slave_ready():
+                link.wait_slave_ready()
             engine.receive(link.xfer32(out))
     finally:
         engine.close_all()
