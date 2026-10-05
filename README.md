@@ -84,19 +84,28 @@ Manager がすでに動いていて Pi 側だけ再起動したときは `python
 
 ChisLink Manager は GBA のソフトなので、GBC カセットを刺すと SP がゲームボーイモードに入り、Manager は止まります。GB/GBC は別の吸い出しソフトを使います。本家は [Lorenzooone/gba-dump-gb](https://github.com/Lorenzooone/gba-dump-gb)（GPL-3.0、タグ 1.0）です。
 
-GBC モードではリンク端子が 5V になります（GBATEK の 8bit-Gamepak-Switch）。今の 3.3V 直結のままカセットを刺すと Pi の GPIO を壊します。SO・SI・SC を、Pi 側 3.3V、SP 側 5V でレベル変換してから `--accept-5v` を付けてください。フラグが無いと GPIO を開かずに止まります。
+GBC モードではリンク端子が 5V になります（GBATEK の 8bit-Gamepak-Switch）。ケーブルは途中で持ち替えます。
+
+直結は上の GBA 用のままです。モジュールは通しません。マルチブートはこのケーブルで行います。
+
+GB 用はレベル変換モジュール（秋月 117062）を 1 個挟みます。SO、SI、SC だけを通します。モジュールの低い側は Pi の 3.3V、高い側は Pi の 5V です。4 番と 6 番は GND のまま、モジュールの GND もそこへ繋ぎます。Pi の 5V を信号線や SP へ直接は繋ぎません。
 
 ```sh
 python3 tools/fetch_gb_dumper.py
 python3 -m pigbalink.gb --accept-5v
 ```
 
-1. カセットを抜いたまま、上のコマンドを実行する。マルチブートが終わる。
-2. 画面が出てから GBC カセットを刺す。
-3. ロゴを認識して画面が変わったら、A で ROM、B でセーブ、START で両方。
-4. ROM は `dumps/`、セーブは `saves/` にできる。1MiB でおよそ 70 分（ニブルの待ちが 2ms）。短くするときは `--gap 0.001`。区間のやり直しが増えたら戻す。
+`--accept-5v` が無いと GPIO を開かずに止まります。Buster でシステムの `python3` が 3.7 のときは、3.11 の venv で同じコマンドを実行します（`.venv/bin/python -m pigbalink.gb --accept-5v`）。
 
-Buster でシステムの `python3` が 3.7 のときは、3.11 の venv で同じコマンドを実行する（`.venv/bin/python -m pigbalink.gb --accept-5v`）。
+1. カセットを抜き、SP の電源を切る。直結ケーブルだけを繋ぐ。
+2. 上のコマンドを実行する。SP の電源を入れ、ロゴの間 START と SELECT を押し続ける。ログに「吸い出しソフトを送りました」と出るまで直結のまま待つ。
+3. 直結ケーブルを SP から外す。カセットはまだ刺さない。
+4. GB または GBC のカセットを刺す。リンクはここで 5V になる。
+5. モジュール経由のケーブルを SP に繋ぐ。
+6. 画面が変わったら、A で ROM、B でセーブ、START で両方。
+7. ROM は `dumps/`、セーブは `saves/` にできる。1MiB でおよそ 70 分（ニブルの待ちが 2ms）。短くするときは `--gap 0.001`。区間のやり直しが増えたら戻す。ログが進み終わってから Ctrl-C で止める。
+
+直結を付けたままカセットを刺すと、Pi へ 5V が届きます。モジュールの高い側を Pi の 5V にしたケーブルを、カセットを刺す前の SP に繋ぐと、SP へ 5V が届きます。
 
 ### 完成の確認
 

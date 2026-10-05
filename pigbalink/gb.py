@@ -7,8 +7,9 @@ SP には Lorenzooone/gba-dump-gb の gba-switch-to-gbc_mb.gba を送り、
   python3 -m pigbalink.gb --accept-5v
 
 GBC モードのリンク端子は 5V です（GBATEK の 8bit-Gamepak-Switch）。
-今の 3.3V 直結のままカセットを刺すと Pi の GPIO を壊します。
-SO・SI・SC を 3.3V と 5V の間で変換してから --accept-5v を付けてください。
+マルチブートは 3.3V 直結で送り、送り終わったら直結を外してからカセットを刺す。
+そのあと、SO・SI・SC をレベル変換したケーブル（低い側 Pi の 3.3V、高い側 Pi の 5V）を繋ぐ。
+直結のままカセットを刺すと Pi の GPIO を壊します。--accept-5v が無いと GPIO を開きません。
 """
 
 import argparse
@@ -64,8 +65,8 @@ def main(argv=None) -> int:
         multiboot.send(link, rom)
         log.info("吸い出しソフトを送りました")
         link.set_speed(args.gb_hz)
-        log.info("カセットはまだ抜いたままにしてください。画面が出てから GBC カセットを刺します")
-        log.info("ロゴを認識して画面が変わったら、A で ROM、B でセーブ、START で両方です")
+        log.info("直結ケーブルを外してから、GB または GBC のカセットを刺してください")
+        log.info("刺したらレベル変換したケーブルを繋ぎます。画面が変わったら、A で ROM、B でセーブ、START で両方です")
         time.sleep(2)
         state = {"stem": "gb-sram", "count": 0}
 
