@@ -53,6 +53,13 @@ class PigpioLink:
             raise LinkError(f"spi_xfer が {count} を返しました")
         return int.from_bytes(bytes(data), "big")
 
+    def xfer8(self, byte: int) -> int:
+        # GB のシリアルもアイドル High、MSB 先頭。32bit のときと同じ SPI モード 3 で 8 クロック。
+        count, data = self._pi.spi_xfer(self._handle, bytes((byte & 0xFF,)))
+        if count != 1:
+            raise LinkError(f"spi_xfer が {count} を返しました")
+        return data[0]
+
     def slave_ready(self) -> bool:
         # 転送待ちの SO は、これから送るワードの最上位ビットそのもの（GBATEK の
         # Normal 32bit は高ビットが先）。プロトコルのワードは 0x2xxxxxxx なので

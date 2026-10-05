@@ -80,6 +80,24 @@ SP の電源を入れ、ロゴの間 START と SELECT を押し続けると、�
 
 Manager がすでに動いていて Pi 側だけ再起動したときは `python3 -m pigbalink --skip-multiboot`。
 
+## GBC カセット
+
+ChisLink Manager は GBA のソフトなので、GBC カセットを刺すと SP がゲームボーイモードに入り、Manager は止まります。GB/GBC は別の吸い出しソフトを使います。本家は [Lorenzooone/gba-dump-gb](https://github.com/Lorenzooone/gba-dump-gb)（GPL-3.0、タグ 1.0）です。
+
+GBC モードではリンク端子が 5V になります（GBATEK の 8bit-Gamepak-Switch）。今の 3.3V 直結のままカセットを刺すと Pi の GPIO を壊します。SO・SI・SC を、Pi 側 3.3V、SP 側 5V でレベル変換してから `--accept-5v` を付けてください。フラグが無いと GPIO を開かずに止まります。
+
+```sh
+python3 tools/fetch_gb_dumper.py
+python3 -m pigbalink.gb --accept-5v
+```
+
+1. カセットを抜いたまま、上のコマンドを実行する。マルチブートが終わる。
+2. 画面が出てから GBC カセットを刺す。
+3. ロゴを認識して画面が変わったら、A で ROM、B でセーブ、START で両方。
+4. ROM は `dumps/`、セーブは `saves/` にできる。1MiB でおよそ 70 分（ニブルの待ちが 2ms）。短くするときは `--gap 0.001`。区間のやり直しが増えたら戻す。
+
+Buster でシステムの `python3` が 3.7 のときは、3.11 の venv で同じコマンドを実行する（`.venv/bin/python -m pigbalink.gb --accept-5v`）。
+
 ### 完成の確認
 
 ダンプしたファイルのタイトルを、カセットのものと見比べる。
@@ -176,7 +194,10 @@ pigbalink/
   host.py       ワード単位の状態機械とコマンド応答
   files.py      パスの対応とハンドル
   romheader.py  ダンプのタイトル表示
-tools/fetch_manager.py  公式リリースから Manager を取り出す
+  gbdump.py     GB/GBC 吸い出しの受信（ニブル手順）
+  gb.py         python3 -m pigbalink.gb
+tools/fetch_manager.py    公式リリースから Manager を取り出す
+tools/fetch_gb_dumper.py  gba-dump-gb のマルチブート ROM を取得する
 tests/
 ```
 
@@ -185,4 +206,5 @@ tests/
 - [ChisBread/ChisLink](https://github.com/ChisBread/ChisLink)（MIT）: プロトコル、GBA 側 SDK、Manager
 - [akkera102/gba_01_multiboot](https://github.com/akkera102/gba_01_multiboot): 配線、マルチブート手順
 - [bartjakobs/GBA-Multiboot-Python](https://github.com/bartjakobs/GBA-Multiboot-Python): マルチブートの Python 版
-- GBATEK: リンクの Normal 32bit モード
+- GBATEK: リンクの Normal 32bit モード、8bit モードの 5V
+- [Lorenzooone/gba-dump-gb](https://github.com/Lorenzooone/gba-dump-gb)（GPL-3.0）: GB/GBC 吸い出しソフト。受信手順の元
