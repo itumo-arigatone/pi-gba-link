@@ -107,6 +107,43 @@ python3 -m pigbalink.gb --accept-5v
 
 直結を付けたままカセットを刺すと、Pi へ 5V が届きます。モジュールの高い側を Pi の 5V にしたケーブルを、カセットを刺す前の SP に繋ぐと、SP へ 5V が届きます。
 
+### 5V の Arduino で受ける
+
+レベル変換モジュールを使わない受け方です。マルチブートまでが Pi の 3.3V 直結で、カセットを刺したあとの吸い出しが 5V の Arduino（Uno または Nano、ATmega328P）です。Arduino はニブルをその場で受け、確定した区間を USB シリアルで PC に流します。PC が `dumps/` と `saves/` に書きます。
+
+Arduino IDE で `firmware/gb_dump/gb_dump.ino` を書き込みます。1 番（VDD）は繋ぎません。
+
+| リンク端子 | Arduino Uno / Nano |
+| --- | --- |
+| 2 SO | D12（MISO） |
+| 3 SI | D11（MOSI） |
+| 4 SD | GND |
+| 5 SC | D13（SCK） |
+| 6 GND | GND |
+
+PC には pyserial が要ります（`pip install pyserial`）。吸い出しソフトの取得は上と同じです。
+
+1. カセットを抜き、SP の電源を切る。Pi の 3.3V 直結だけを繋ぐ。Arduino はまだ繋がない。
+2. Pi で次を実行する。SP の電源を入れ、ロゴの間 START と SELECT を押し続ける。「吸い出しソフトを送りました」まで直結のまま待つ。
+
+   ```sh
+   python3 -m pigbalink.gb --multiboot-only
+   ```
+
+3. 直結を外す。カセットはまだ刺さない。
+4. GB または GBC のカセットを刺す。リンクはここで 5V になる。
+5. Arduino の USB を PC に繋ぎ、上の配線で SP に直結する。カセットを刺す前の SP に 5V の Arduino を繋ぐと、SP へ 5V が入ります。
+6. PC で次を実行する。「ボタンを押してください」と出てから、A で ROM、B でセーブ、START で両方。
+
+   ```sh
+   python3 -m pigbalink.gbserial --port COM5
+   ```
+
+   Linux では `/dev/ttyACM0`。ポートが違うときは `--port` を変える。
+7. ROM は `dumps/`、セーブは `saves/` にできる。ログが進み終わってから終わりです。
+
+Uno はシリアルポートを開くと再起動します。スクリプトは開いたあと 2 秒待ってから開始の `G` を送ります。待ちが足りないときは `--boot-wait` を伸ばします。
+
 ### 完成の確認
 
 ダンプしたファイルのタイトルを、カセットのものと見比べる。
@@ -205,6 +242,8 @@ pigbalink/
   romheader.py  ダンプのタイトル表示
   gbdump.py     GB/GBC 吸い出しの受信（ニブル手順）
   gb.py         python3 -m pigbalink.gb
+  gbserial.py   Arduino からの USB シリアルを dumps/ と saves/ に書く
+firmware/gb_dump/gb_dump.ino  5V Arduino のニブル受信
 tools/fetch_manager.py    公式リリースから Manager を取り出す
 tools/fetch_gb_dumper.py  gba-dump-gb のマルチブート ROM を取得する
 tests/
